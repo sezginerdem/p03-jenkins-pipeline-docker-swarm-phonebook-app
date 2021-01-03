@@ -155,8 +155,9 @@ Resources:
   DockerManager1:
     Type: AWS::EC2::Instance
     Properties:
+      IamInstanceProfile: !Ref EC2ConnectProfile
       ImageId: ami-04d29b6f966df1537
-      InstanceType: t2.medium
+      InstanceType: t2.micro
       KeyName: !Ref KeyPairName
       IamInstanceProfile: !Ref EC2ConnectProfile
       SecurityGroupIds:
@@ -169,34 +170,54 @@ Resources:
         - Key: project
           Value: "202"
       UserData: 
-        Fn::Base64: |
-          #! /bin/bash
-          yum update -y
-          hostnamectl set-hostname Grand-Master
-          amazon-linux-extras install docker -y
-          systemctl start docker
-          systemctl enable docker
-          usermod -a -G docker ec2-user
-          curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" \
-          -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-          docker swarm init
-          yum install git -y
-          docker service create \
-            --name=viz \
-            --publish=8080:8080/tcp \
-            --constraint=node.role==manager \
-            --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
-            dockersamples/visualizer
-          # uninstall aws cli version 1
-          rm -rf /bin/aws
-          curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-          unzip awscliv2.zip
-          ./aws/install
-          yum install amazon-ecr-credential-helper -y
-          mkdir -p /home/ec2-user/.docker
-          cd /home/ec2-user/.docker
-          echo '{"credsStore": "ecr-login"}' > config.json
+        Fn::Base64:
+          !Sub
+            - |
+              #! /bin/bash
+              yum update -y
+              hostnamectl set-hostname Grand-Master
+              amazon-linux-extras install docker -y
+              systemctl start docker
+              systemctl enable docker
+              usermod -a -G docker ec2-user
+              curl -L "https://github.com/docker/compose/releases/download/1.26.2/docker-compose-$(uname -s)-$(uname -m)" \
+              -o /usr/local/bin/docker-compose
+              chmod +x /usr/local/bin/docker-compose
+              docker swarm init
+              aws ecr get-login-password --region ${AWS::Region} | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+              docker service create \
+                --name=viz \
+                --publish=8080:8080/tcp \
+                --constraint=node.role==manager \
+                --mount=type=bind,src=/var/run/docker.sock,dst=/var/run/docker.sock \
+                dockersamples/visualizer
+              yum install git -y
+              curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+              unzip awscliv2.zip
+              ./aws/install
+              yum install amazon-ecr-credential-helper -y
+              mkdir -p /home/ec2-user/.docker
+              cd /home/ec2-user/.docker
+              echo '{"credsStore": "ecr-login"}' > config.json
+              aws ecr create-repository \
+                  --repository-name ${APP_REPO_NAME} \
+                  --image-scanning-configuration scanOnPush=false \
+                  --image-tag-mutability MUTABLE \
+                  --region ${AWS::Region}
+              docker build --force-rm -t "${ECR_REGISTRY}/${APP_REPO_NAME}:latest" ${GITHUB_REPO}
+              docker push "${ECR_REGISTRY}/${APP_REPO_NAME}:latest"
+              mkdir -p /home/ec2-user/phonebook
+              cat << EOF | tee.env
+              ECR_REGISTRY=${ECR_REGISTRY}
+              APP_REPO_NAME=${APP_REPO_NAME}
+              EOF
+              curl -o "docker-compose.yml" -L ${GIT_FILE_URL}docker-compose.yml
+              curl -o "init.sql" -L ${GIT_FILE_URL}init.sql
+              docker-compose config | docker stack deploy --with-registry-auth -c - phonebook
+            - ECR_REGISTRY: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com
+              APP_REPO_NAME: sezginerdem -repo/phonebook-app
+              GITHUB_REPO: https://github.com/sezginerdem/Docker-Swarm-Deployment-of-Phonebook-Application-Python-Flask-with-MySQL.git
+              GIT_FILE_URL: https://raw.githubusercontent.com/sezginerdem/Docker-Swarm-Deployment-of-Phonebook-Application-Python-Flask-with-MySQL/master/
   DockerManager2:
     Type: AWS::EC2::Instance
     DependsOn:
@@ -206,8 +227,6 @@ Resources:
         LaunchTemplateId: !Ref ManagerLT
         Version: !GetAtt ManagerLT.LatestVersionNumber 
       Tags:                
-        - Key: server
-          Value: docker-manager-2                       
         - Key: Name
           Value: !Sub Docker Manager 2nd of ${AWS::StackName}
         - Key: project
@@ -221,8 +240,6 @@ Resources:
         LaunchTemplateId: !Ref ManagerLT
         Version: !GetAtt ManagerLT.LatestVersionNumber
       Tags:                
-        - Key: server
-          Value: docker-manager-3                        
         - Key: Name
           Value: !Sub Docker Manager 3rd of ${AWS::StackName}
         - Key: project
@@ -230,14 +247,12 @@ Resources:
   DockerWorker1:
     Type: AWS::EC2::Instance
     DependsOn:
-      - DockerManager2
+      - DockerManager3
     Properties:
       LaunchTemplate:
         LaunchTemplateId: !Ref WorkerLT
         Version: !GetAtt WorkerLT.LatestVersionNumber
       Tags:                
-        - Key: server
-          Value: docker-worker-1                       
         - Key: Name
           Value: !Sub Docker Worker 1st of ${AWS::StackName}
         - Key: project
@@ -251,39 +266,37 @@ Resources:
         LaunchTemplateId: !Ref WorkerLT
         Version: !GetAtt WorkerLT.LatestVersionNumber 
       Tags:                
-        - Key: server
-          Value: docker-worker-2                       
         - Key: Name
           Value: !Sub Docker Worker 2nd of ${AWS::StackName}
         - Key: project
           Value: "202" 
 Outputs:
-  1stDockerManagerDashboard:
+  DockerManagerDashboard:
     Description: Dashboard for Docker Swarm
     Value: !Sub 
       - http://${PublicAddress}:8080
       - PublicAddress: !GetAtt DockerManager1.PublicDnsName
-  1stDockerManagerDNSName:
+  1stManagerDNSName:
     Description: Docker Manager 1st DNS Name
     Value: !Sub 
       - ${PublicAddress}
       - PublicAddress: !GetAtt DockerManager1.PublicDnsName
-  2ndDockerManagerDNSName:
+  2ndManagerDNSName:
     Description: Docker Manager 2nd DNS Name
     Value: !Sub 
       - ${PublicAddress}
       - PublicAddress: !GetAtt DockerManager2.PublicDnsName
-  3rdDockerManagerDNSName:
+  3rdManagerDNSName:
     Description: Docker Manager 3rd DNS Name
     Value: !Sub 
       - ${PublicAddress}
       - PublicAddress: !GetAtt DockerManager3.PublicDnsName
-  1stDockerWorkerDNSName:
+  1stWorkerDNSName:
     Description: Docker Worker 1st DNS Name
     Value: !Sub 
       - ${PublicAddress}
       - PublicAddress: !GetAtt DockerWorker1.PublicDnsName
-  2ndDockerWorkerDNSName:
+  2ndWorkerDNSName:
     Description: Docker Worker 2nd DNS Name
     Value: !Sub 
       - ${PublicAddress}
