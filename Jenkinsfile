@@ -26,8 +26,27 @@ pipeline {
                   --image-tag-mutability MUTABLE \
                   --region ${AWS_REGION}
                 """
-            }    
+            }
         }
+        stage('building Docker Image') {
+            steps {
+                echo 'building Docker Image'
+                sh 'docker build --force-rm -t "$ECR_REGISTRY/$APP_REPO_NAME:latest" .'
+                sh 'docker image ls'
+            }
+        }
+        stage('pushing Docker image to ECR Repository'){
+            steps {
+                echo 'pushing Docker image to ECR Repository'
+                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
+                sh 'docker push "$ECR_REGISTRY/$APP_REPO_NAME:latest"'
+
+            }
+        }
+        stage('creating infrastructure for the Application') {
+            steps {
+                echo 'creating infrastructure for the Application'
+                sh "aws cloudformation create-stack --region ${AWS_REGION} --stack-name ${AWS_STACK_NAME} --capabilities CAPABILITY_IAM --template-body file://${CFN_TEMPLATE} --parameters ParameterKey=KeyPairName,ParameterValue=${CFN_KEYPAIR}"
 
             script {
                 while(true) {
@@ -48,7 +67,7 @@ pipeline {
         }
         stage('Test the infrastructure') {
             steps {
-                echo echo "Testing if the Docker Swarm is ready or not, by checking Viz App on Grand Master with Public Ip Address: ${MASTER_INSTANCE_PUBLIC_IP}:8080"
+                echo "Testing if the Docker Swarm is ready or not, by checking Viz App on Grand Master with Public Ip Address: ${MASTER_INSTANCE_PUBLIC_IP}:8080"
             script {
                 while(true) {
                     try {
@@ -63,29 +82,8 @@ pipeline {
                 }
             }
         }
+    }
 
-
-        stage('building Docker Image') {
-            steps {
-                echo 'building Docker Image'
-                sh 'docker build --force-rm -t "$ECR_REGISTRY/$APP_REPO_NAME:latest" .'
-                sh 'docker image ls'
-            }
-        }
-        stage('pushing Docker image to ECR Repository'){
-            steps {
-                echo 'pushing Docker image to ECR Repository'
-                sh 'aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin "$ECR_REGISTRY"'
-                sh 'docker push "$ECR_REGISTRY/$APP_REPO_NAME:latest"'           
-           
-            }
-        }
-        stage('creating infrastructure for the Application') {
-            steps {
-                echo 'creating infrastructure for the Application'
-                sh "aws cloudformation create-stack --region ${AWS_REGION} --stack-name ${AWS_STACK_NAME} --capabilities CAPABILITY_IAM --template-body file://${CFN_TEMPLATE} --parameters ParameterKey=KeyPairName,ParameterValue=${CFN_KEYPAIR}"
-            }
-        }
         stage('Deploying the Application'){
             environment {
                 MASTER_INSTANCE_ID=sh(script:'aws ec2 describe-instances --region ${AWS_REGION} --filters Name=tag-value,Values=docker-grand-master Name=tag-value,Values=${AWS_STACK_NAME} --query Reservations[*].Instances[*].[InstanceId] --output text', returnStdout:true).trim()
@@ -97,7 +95,7 @@ pipeline {
                 sh 'mssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no --region ${AWS_REGION} ${MASTER_INSTANCE_ID} docker stack deploy --with-registry-auth -c ${HOME_FOLDER}/${GIT_FOLDER}/docker-compose.yml ${APP_NAME}'
             }
         }
-    }    
+    }
     post {
         always {
             echo 'Deleting all local images'
