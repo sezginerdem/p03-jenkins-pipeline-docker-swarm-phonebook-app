@@ -1,0 +1,29 @@
+* Infrastructure
+* Public Repositorty on GitHub (Codebase)
+* Docker Swarm as Orchestrator
+    - 3 Managers
+    - 2 Workers
+* Image Repositorty(AWS ECR)
+* Shoul be able to
+    - Talk to each other (EC2 Connect CLI)
+    - Talk to ECR (AWS CLI, ECR Credential Helper, IAM Roles)
+* Application Deployment
+    - Python Flask
+    - MySQL
+        Service MySQL
+        Service for App
+    - Improve CloudFormation template to deploy App
+
+
+
+
+
+
+
+
+
+
+
+
+
+

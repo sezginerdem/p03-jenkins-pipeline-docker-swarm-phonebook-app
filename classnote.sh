@@ -1,11 +1,7 @@
 
-=Project-202: Docker Swarm Deployment of Phonebook Application (Python Flask) with=
+Docker Swarm Deployment of Phonebook Application (Python Flask) with=
 
 Part-3
-
-Date: 26/11/2020
-
-Instructor: Serdar
 
 
 - Infrastructure

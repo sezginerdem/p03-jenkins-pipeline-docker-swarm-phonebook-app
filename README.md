@@ -1,18 +1,16 @@
-# Project-202: Jenkins Pipeline for Dockerized Phonebook Application (Python Flask & MySQL) Deployed on Docker Swarm
+# Project-202: Docker Swarm Deployment of Phonebook Application (Python Flask) with MySQL
 
 ## Description
 
-This project aims to create a Jenkins pipeline to deploy the Phonebook Application web application with Docker Swarm on Elastic Compute Cloud (EC2) Instances by pulling the app images from the AWS Elastic Container Registry (ECR) repository.
+This project aims to create a phonebook application web application developed in Python Flask , deployed with Docker Swarm on Elastic Compute Cloud (EC2) Instances by pulling the app images from the AWS Elastic Container Registry (ECR) repository.
 
 ## Problem Statement
 
-![Project_202](Project_202.png)
+![Project_203](project-203.png)
 
 - Your company has recently started a project that aims to serve as phonebook web application. Your teammates have started to work on the project and developed the UI and backend part of the project and they need your help to deploy the app in development environment.
 
-- You are, as a cloud engineer, requested to create a Jenkins pipeline to deploy the Phonebook Application in the development environment on Docker Swarm on AWS EC2 Instances using AWS Cloudformation Service to showcase the project.
-
-- To prepare the application for deployment, you need to;
+- You are, as a cloud engineer, requested to deploy the Phonebook Application in the development environment on Docker Swarm on AWS EC2 Instances using AWS Cloudformation Service to showcase the project. To do that you need to;
 
   - Create a new public repository for the project on GitHub.
 
@@ -21,7 +19,6 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
   - Deploy the app on swarm using `docker compose`. To do so on the `Compose` file;
 
     - Create a MySQL database service with one replica using the image of `mysql:5.7`;
-
       - attach a named volume to persist the data of database server.
 
       - attach `init.sql` file to initialize the database using `configs`.
@@ -36,7 +33,9 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 
     - Use a custom network for the services.
 
-- You are also requested; to use AWS ECR as image repository, to create Docker Swarm with 3 manager and 2 worker node instances, to automate the process of Docker Swarm initialization through Cloudformation in the development environment. So, to prepare the infrastructure, you can configure Cloudformation template using the followings;
+  - Push the necessary files for your project to the new project repo.
+
+- You are also requested; to use AWS ECR as image repository, to create Docker Swarm with 3 manager and 2 worker node instances, to automate the process of Docker Swarm initialization through Cloudformation in the development environment. To achieve this goals, you can configure Cloudformation template using the followings;
 
   - The application stack should be created with new AWS resources.
 
@@ -64,6 +63,10 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 
       - Create a docker service named `viz` on the manager node on port `8080` using the `dockersamples/visualizer` image, to monitor the swarm nodes easily.
 
+      - Create an image repository on ECR for the app
+
+      - Build the docker image from the GitHub URL of the new project repo and tag it appropriately to push it on ECR repo. (Note: Do not forget to install Git to enable Docker to work with git commands)
+
       - Download `docker-compose.yml` file from the repo and deploy application stack on Docker Swarm.
 
     - Create a launch template with `instance profile` for Manager Nodes. Within the `user-data` script;
@@ -90,37 +93,22 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 
   - Phonebook App Website URL, Visualization App Website URL should be given as output by Cloudformation Service, after the stack created.
 
-- To create a Jenkins Pipelines, you need to launch a Jenkins Server with security group allowing SSH (port 22) and HTTP (ports 80, 8080) connections. For this purpose, you can use pre-configured [*Cloudformation Template for Jenkins Server enabled with Git, Docker, Docker Compose and also configured to work with AWS ECR using IAM role*](./clarusway-jenkins-with-git-docker-ecr-cfn.yml).
-
-- Create a Jenkins Pipeline with following configuration;
-
-  - Create an image repository on ECR for the app.
-
-  - Build the application Docker image and push it to the ECR repository.
-
-  - Build the infrastructure for the app on EC2 instances using Cloudformation template.
-
-  - Deploy the application on Docker Swarm
-
 ## Project Skeleton
 
 ```text
-202-jenkins-pipeline-for-phonebook-app-on-docker-swarm (folder)
+203-phonebook-web-application (folder)
 |
-|----readme.md                  # Given to the students (Definition of the project)
-|----phonebook-cfn-template.yml # To be delivered by students (Cloudformation template)
-|----Dockerfile                 # To be delivered by students
-|----docker-compose.yml         # To be delivered by students
-|----init.sql                   # Given to the students (SQL statements to initialize db)
-|----jenkins-cfn-template.yml   # Given to the students (Cloudformation template for Jenkins Server)
-|----Jenkinsfile                # To be delivered by students
-|----app
-      |----phonebook-app.py     # Given to the students (Python Flask Web Application)
-      |----requirements.txt     # Given to the students (List of Flask Modules/Packages)
-      |----templates
-            |----index.html      # Given to the students (HTML template)
-            |----add-update.html # Given to the students (HTML template)
-            |----delete.html     # Given to the students (HTML template)
+|----readme.md            # Given to the students (Definition of the project)
+|----cfn-template.yml     # To be delivered by students (Cloudformation template)
+|----phonebook-app.py     # Given to the students (Python Flask Web Application)
+|----requirements.txt     # Given to the students (List of Flask Modules/Packages)
+|----init.sql             # Given to the students (SQL statements to initialize db)
+|----Dockerfile           # To be delivered by students
+|----docker-compose.yml   # To be delivered by students
+|----templates
+|       |----index.html      # Given to the students (HTML template)
+|       |----add-update.html # Given to the students (HTML template)
+|       |----delete.html     # Given to the students (HTML template)
 ```
 
 ## Expected Outcome
@@ -128,8 +116,6 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 ![Phonebook App Search Page](./search-snapshot.png)
 
 ### At the end of the project, following topics are to be covered;
-
-- Jenkins Pipeline Configuration
 
 - Docker Swarm Deployment
 
@@ -155,8 +141,6 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 
 ### At the end of the project, students will be able to;
 
-- demonstrate how to configure Jenkins pipeline to deploy app on Docker Swarm together with Cloudformation Template.
-
 - demonstrate how to configure Dockerfile and docker-compose files.
 
 - set up a Docker Swarm cluster to work with AWS ECR using Cloudformation.
@@ -167,13 +151,13 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 
 - use Docker commands effectively to tag, push, and pull images to/from ECR.
 
-- demonstrate bash scripting skills using `user data` section in Cloudformation to install and setup environment for Docker Swarm on EC2 Instances.
+- demonstrate bash scripting skills using `user data` section in Cloudformation to install and setup Docker and application environment on EC2 Instances.
 
 - demonstrate their configuration skills of AWS EC2, Launch Templates, IAM Policy, Role, Instance Profile, and Security Group.
 
 - configure Cloudformation template to use AWS Resources.
 
-- show how to launch AWS Cloudformation Templates from AWS CLI.
+- show how to use AWS Cloudformation Service to launch stacks.
 
 - apply git commands (push, pull, commit, add etc.) and Github as Version Control System.
 
@@ -192,5 +176,3 @@ This project aims to create a Jenkins pipeline to deploy the Phonebook Applicati
 - [Docker Reference Page](https://docs.docker.com/reference/)
 
 - [EC2 Instance Connect](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Connect-using-EC2-Instance-Connect.html)
-
-- [Jenkins Handbook](https://www.jenkins.io/doc/book/)

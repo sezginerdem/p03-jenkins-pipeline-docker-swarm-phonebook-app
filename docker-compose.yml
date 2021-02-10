@@ -1,4 +1,4 @@
-version: "3.7"
+version: "3.8"
 
 services:
   database:
@@ -6,24 +6,24 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: P123456p
       MYSQL_DATABASE: phonebook_db
-      MYSQL_USER: admin
-      MYSQL_PASSWORD: Clarusway_1
+      MYSQL_USER: Sezgin
+      MYSQL_PASSWORD: Sezgin_1
     volumes:
       - db-data:/var/lib/mysql
     networks:
       - clarusnet
     configs:
-      - source: initialdatabase
+      - source: initialdb
         target: /docker-entrypoint-initdb.d/init.sql
 
   app-server:
-    image: 232645359544.dkr.ecr.us-east-1.amazonaws.com/sezgin-repo/phonebook-app:latest
+    image: "${ECR_REGISTRY}/${APP_REPO_NAME}:latest"
     deploy:
-      mode: global
-      update_config:
-        parallelism: 2
-        delay: 5s
-        order: start-first
+        mode: global
+        update_config:
+          parallelism: 2
+          delay: 5s
+          order: start-first
     ports:
       - "80:80"
     networks:
@@ -34,8 +34,9 @@ networks:
     driver: overlay
 
 volumes:
-  db-data:
+    db-data:
 
 configs:
-  initialdatabase:
-      file: ./init.sql
+  initialdb:
+    file: ./init.sql
+

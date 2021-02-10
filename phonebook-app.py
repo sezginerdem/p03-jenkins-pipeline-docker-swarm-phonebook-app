@@ -7,7 +7,7 @@ app = Flask(__name__)
 
 # Configure mysql database
 app.config['MYSQL_DATABASE_HOST'] = 'database'
-app.config['MYSQL_DATABASE_USER'] = 'sezgin'
+app.config['MYSQL_DATABASE_USER'] = 'Sezgin'
 app.config['MYSQL_DATABASE_PASSWORD'] = 'Sezgin_1'
 app.config['MYSQL_DATABASE_DB'] = 'phonebook_db'
 app.config['MYSQL_DATABASE_PORT'] = 3306
@@ -98,7 +98,7 @@ def find_records():
     if request.method == 'POST':
         keyword = request.form['username']
         persons = find_persons(keyword)
-        return render_template('index.html', persons=persons, keyword=keyword, show_result=True, developer_name='Sezgin')
+        return render_template('index.html', persons=persons, keyword=keyword, show_result=True, developer_name='Sezgin ERDEM')
     else:
         return render_template('index.html', show_result=False, developer_name='Sezgin')
 
@@ -164,3 +164,7 @@ def delete_record():
 # Add a statement to run the Flask application which can be reached from any host on port 80.
 if __name__== '__main__':
     app.run(host='0.0.0.0', port=80) 
+
+
+
+
